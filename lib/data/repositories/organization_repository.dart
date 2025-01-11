@@ -3,29 +3,39 @@ import '../models/organization.dart';
 import 'dart:convert';
 
 class OrganizationRepository {
-  final _db = DatabaseService();
+  final DatabaseService _db;
+
+  OrganizationRepository(this._db);
 
   Future<List<Organization>> getOrganizations() async {
     try {
       final conn = await _db.getConnection();
-      final results = await conn.query(
-        'SELECT o.*, u.full_name as creator_name '
-        'FROM organizations o '
-        'LEFT JOIN users u ON o.created_by = u.id'
-      );
+      final results = await conn.query('''
+        SELECT o.*, u.full_name as creator_name,
+               COUNT(DISTINCT t.id) as team_count,
+               COUNT(DISTINCT om.user_id) as member_count
+        FROM organizations o
+        LEFT JOIN users u ON o.created_by = u.id
+        LEFT JOIN teams t ON t.organization_id = o.id
+        LEFT JOIN organization_members om ON om.organization_id = o.id
+        GROUP BY o.id, o.name, o.description, o.created_by, o.created_at, u.full_name
+      ''');
       
       await conn.close();
       
-      return results.map((row) => Organization(
-        id: row['id'],
-        name: row['name'],
-        description: row['description'],
-        createdBy: row['created_by'],
-        createdAt: row['created_at'],
-        teams: [],
-        members: [],
-      )).toList();
+      return results.map((row) {
+        return Organization(
+          id: row['id'] as int,
+          name: row['name'].toString(),
+          description: row['description']?.toString(),
+          createdBy: row['created_by'] as int?,
+          createdAt: row['created_at'] as DateTime,
+          teams: [],
+          members: [],
+        );
+      }).toList();
     } catch (e) {
+      print('Error details: $e'); // For debugging
       throw Exception('Failed to load organizations: $e');
     }
   }

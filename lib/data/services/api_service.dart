@@ -1,46 +1,41 @@
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3000/api';
-  
-  final http.Client _client;
-  
-  ApiService({http.Client? client}) : _client = client ?? http.Client();
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
 
-  Future<http.Response> get(String endpoint, {Map<String, String>? headers}) async {
-    return await _client.get(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: headers,
-    );
+  final String baseUrl = 'http://localhost:8000/api'; // Adjust based on your API
+
+  Future<dynamic> get(String endpoint) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/$endpoint'));
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Failed to perform GET request: $e');
+    }
   }
 
-  Future<http.Response> post(String endpoint, {
-    Map<String, String>? headers,
-    dynamic body,
-  }) async {
-    return await _client.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: {...?headers, 'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
+  Future<dynamic> post(String endpoint, Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/$endpoint'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Failed to perform POST request: $e');
+    }
   }
 
-  Future<http.Response> put(String endpoint, {
-    Map<String, String>? headers,
-    dynamic body,
-  }) async {
-    return await _client.put(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: {...?headers, 'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
-  }
-
-  Future<http.Response> delete(String endpoint, {Map<String, String>? headers}) async {
-    return await _client.delete(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: headers,
-    );
+  dynamic _handleResponse(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('API Error: ${response.statusCode}');
+    }
   }
 }

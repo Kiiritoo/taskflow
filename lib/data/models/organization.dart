@@ -4,7 +4,7 @@ class Organization {
   final int id;
   final String name;
   final String? description;
-  final int createdBy;
+  final int? createdBy;
   final DateTime createdAt;
   final List<Team> teams;
   final List<OrganizationMember> members;
@@ -13,7 +13,7 @@ class Organization {
     required this.id,
     required this.name,
     this.description,
-    required this.createdBy,
+    this.createdBy,
     required this.createdAt,
     this.teams = const [],
     this.members = const [],
@@ -21,11 +21,13 @@ class Organization {
 
   factory Organization.fromJson(Map<String, dynamic> json) {
     return Organization(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      createdBy: json['created_by'],
-      createdAt: DateTime.parse(json['created_at']),
+      id: json['id'] as int,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      createdBy: json['created_by'] as int?,
+      createdAt: json['created_at'] is String 
+          ? DateTime.parse(json['created_at']) 
+          : json['created_at'] as DateTime,
       teams: (json['teams'] as List?)?.map((team) => Team.fromJson(team)).toList() ?? [],
       members: (json['members'] as List?)?.map((member) => OrganizationMember.fromJson(member)).toList() ?? [],
     );

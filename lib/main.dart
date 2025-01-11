@@ -32,6 +32,7 @@ import 'features/notifications/views/notifications_view.dart';
 import 'features/dashboard/controllers/dashboard_controller.dart';
 import 'features/dashboard/controllers/board_controller.dart';
 import 'core/middleware/auth_middleware.dart';
+import '../../../data/services/database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,54 +40,63 @@ void main() async {
   // Core services
   final prefs = await SharedPreferences.getInstance();
   
-  // Initialize repositories
-  final authRepository = AuthRepository(prefs);
+  // Initialize all dependencies
+  await initializeDependencies(prefs);
   
-  // Put all dependencies
+  // Initialize window size for desktop
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    setWindowTitle('TaskFlow');
+    setWindowMinSize(const Size(1280, 720));
+  }
+  
+  runApp(MyApp(prefs: prefs));
+}
+
+Future<void> initializeDependencies(SharedPreferences prefs) async {
+  // Core services
   Get.put<SharedPreferences>(prefs, permanent: true);
-  Get.put<AuthRepository>(authRepository, permanent: true);
+  Get.put<DatabaseService>(DatabaseService(), permanent: true);
+  Get.put<ApiService>(ApiService(), permanent: true);
   
-  runApp(MyApp(
-    prefs: prefs,
-    initialRoute: '/login',
-    resetToken: prefs.getString('reset_token'),
-  ));
+  // Repositories
+  Get.put<AuthRepository>(AuthRepository(prefs), permanent: true);
+  Get.put<OrganizationRepository>(
+    OrganizationRepository(Get.find<DatabaseService>()), 
+    permanent: true
+  );
+  Get.put<TeamRepository>(
+    TeamRepository(Get.find<DatabaseService>()), 
+    permanent: true
+  );
+  
+  // Controllers
+  Get.put<AuthController>(AuthController(Get.find<AuthRepository>()), permanent: true);
+  Get.put<ProfileController>(
+    ProfileController(Get.find<AuthRepository>()), 
+    permanent: true
+  );
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
-  final String initialRoute;
-  final String? resetToken;
   
   const MyApp({
-    super.key, 
-    required this.prefs, 
-    required this.initialRoute,
-    this.resetToken,
-  });
+    Key? key,
+    required this.prefs,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'TaskFlow',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
-      defaultTransition: Transition.noTransition,
-      initialBinding: BindingsBuilder(() {
-        // Empty as we've initialized dependencies in main()
-      }),
+      theme: AppTheme.lightTheme,
+      initialBinding: AuthBinding(),
+      defaultTransition: Transition.fade,
+      initialRoute: '/login',
       getPages: [
         GetPage(
           name: '/login',
           page: () => LoginView(),
-          binding: AuthBinding(),
-        ),
-        GetPage(
-          name: '/forgot-password',
-          page: () => const ForgotPasswordView(),
           binding: AuthBinding(),
         ),
         GetPage(
@@ -95,73 +105,56 @@ class MyApp extends StatelessWidget {
           binding: AuthBinding(),
         ),
         GetPage(
-          name: '/dashboard',
-          page: () => const DashboardView(),
-          binding: DashboardBinding(),
-          middlewares: [AuthMiddleware()],
+          name: '/forgot-password',
+          page: () => const ForgotPasswordView(),
+          binding: AuthBinding(),
         ),
         GetPage(
           name: '/reset-password',
           page: () => const ResetPasswordView(),
           binding: AuthBinding(),
-          parameters: resetToken != null ? {'token': resetToken!} : null,
+        ),
+        GetPage(
+          name: '/dashboard',
+          page: () => DashboardView(),
+          binding: DashboardBinding(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/profile',
           page: () => const ProfileView(),
           binding: BindingsBuilder(() {
-            Get.lazyPut(() => ProfileController(Get.find<AuthRepository>()));
+            if (!Get.isRegistered<ProfileController>()) {
+              Get.put(ProfileController(Get.find<AuthRepository>()));
+            }
           }),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/organizations',
           page: () => const OrganizationListView(),
-          binding: BindingsBuilder(() {
-            Get.put(OrganizationController(Get.find<OrganizationRepository>()));
-          }),
-        ),
-        GetPage(
-          name: '/organizations/:id',
-          page: () => const OrganizationDetailView(),
-          binding: BindingsBuilder(() {
-            Get.lazyPut<OrganizationController>(
-              () => OrganizationController(Get.find<OrganizationRepository>()),
-              fenix: true
-            );
-          }),
+          binding: DashboardBinding(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/teams',
           page: () => const TeamListView(),
-          binding: BindingsBuilder(() {
-            Get.put(TeamController(Get.find<TeamRepository>()));
-          }),
-        ),
-        GetPage(
-          name: '/teams/:id',
-          page: () => const TeamDetailView(),
-          binding: BindingsBuilder(() {
-            Get.lazyPut<TeamController>(() => TeamController(Get.find()));
-          }),
+          binding: DashboardBinding(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/help',
           page: () => const HelpCenterView(),
+          binding: DashboardBinding(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/support',
           page: () => const SupportView(),
-        ),
-        GetPage(
-          name: '/docs',
-          page: () => const DocumentationView(),
-        ),
-        GetPage(
-          name: '/notifications',
-          page: () => const NotificationsView(),
+          binding: DashboardBinding(),
+          middlewares: [AuthMiddleware()],
         ),
       ],
-      initialRoute: initialRoute,
     );
   }
 }

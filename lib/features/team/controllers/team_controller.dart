@@ -10,17 +10,11 @@ class TeamController extends GetxController {
 
   TeamController(this._repository);
 
-  @override
-  void onInit() {
-    super.onInit();
-    loadTeams();
-  }
-
-  Future<void> loadTeams() async {
+  Future<void> loadTeams(int organizationId) async {
     try {
       isLoading.value = true;
       error.value = '';
-      teams.value = await _repository.getTeams();
+      teams.value = await _repository.getTeamsByOrganization(organizationId);
     } catch (e) {
       error.value = e.toString();
     } finally {
@@ -44,13 +38,23 @@ class TeamController extends GetxController {
     }
   }
 
-  Future<void> deleteTeam(int id) async {
+  Future<void> addTeamMember(int teamId, int userId, String role) async {
     try {
-      await _repository.deleteTeam(id);
-      teams.removeWhere((team) => team.id == id);
-      Get.snackbar('Success', 'Team deleted successfully');
+      await _repository.addTeamMember(teamId, userId, role);
+      await loadTeams(teams.firstWhere((team) => team.id == teamId).organizationId);
+      Get.snackbar('Success', 'Member added successfully');
     } catch (e) {
-      Get.snackbar('Error', 'Failed to delete team');
+      Get.snackbar('Error', 'Failed to add member');
     }
+  }
+
+  void handleError(dynamic error) {
+    isLoading.value = false;
+    error.value = error.toString();
+    Get.snackbar(
+      'Error',
+      'Failed to load teams: ${error.toString()}',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 } 

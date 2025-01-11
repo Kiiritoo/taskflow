@@ -25,29 +25,32 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadUserData();
-    
     fullNameController = TextEditingController();
     usernameController = TextEditingController();
     emailController = TextEditingController();
-    profileImageUrl.value = user.value?.profileImageUrl;
-  }
-  
-  @override
-  void onClose() {
-    fullNameController.dispose();
-    usernameController.dispose();
-    emailController.dispose();
-    super.onClose();
+    loadUserData();
   }
   
   Future<void> loadUserData() async {
-    final currentUser = await _authRepository.getCurrentUser();
-    if (currentUser != null) {
-      user.value = currentUser;
-      fullNameController.text = currentUser.fullName;
-      usernameController.text = currentUser.username;
-      emailController.text = currentUser.email;
+    try {
+      final currentUser = await _authRepository.getCurrentUser();
+      if (currentUser != null) {
+        user.value = currentUser;
+        fullNameController.text = currentUser.fullName;
+        usernameController.text = currentUser.username;
+        emailController.text = currentUser.email;
+        // Only set profileImageUrl if it's a valid string
+        if (currentUser.profileImageUrl is String) {
+          profileImageUrl.value = currentUser.profileImageUrl;
+        }
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load profile data',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
   

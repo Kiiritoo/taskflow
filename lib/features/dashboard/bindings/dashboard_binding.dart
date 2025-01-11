@@ -6,22 +6,20 @@ import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/organization_repository.dart';
 import '../../../data/repositories/team_repository.dart';
 import '../../organization/controllers/organization_controller.dart';
+import '../../team/controllers/team_controller.dart';
+import '../../../data/services/database_service.dart';
+import '../../../data/services/api_service.dart';
 
 class DashboardBinding extends Bindings {
   @override
   void dependencies() {
-    // Core dependencies
-    if (!Get.isRegistered<AuthController>()) {
-      Get.put(AuthController(Get.find<AuthRepository>()), permanent: true);
-    }
-
-    // Repositories
-    Get.lazyPut(() => OrganizationRepository(), fenix: true);
-    Get.lazyPut(() => TeamRepository(Get.find()), fenix: true);
-
+    // Get AuthController instance
+    final authController = Get.find<AuthController>();
+    
     // Controllers
-    Get.lazyPut(() => DashboardController(Get.find<AuthController>()));
-    Get.lazyPut(() => BoardController());
-    Get.lazyPut(() => OrganizationController(Get.find()));
+    Get.lazyPut(() => DashboardController(authController), fenix: true);
+    Get.lazyPut(() => BoardController(), fenix: true);
+    Get.lazyPut(() => OrganizationController(Get.find()), fenix: true);
+    Get.lazyPut(() => TeamController(Get.find()), fenix: true);
   }
 }
