@@ -1,4 +1,5 @@
 import 'team.dart';
+import 'user.dart';
 
 class Organization {
   final int id;
@@ -48,17 +49,20 @@ class Organization {
 
 class OrganizationMember {
   final int userId;
-  final String role; // 'ADMIN', 'MANAGER', 'MEMBER'
+  final String role;
+  final User? user;
 
   OrganizationMember({
     required this.userId,
     required this.role,
+    this.user,
   });
 
   factory OrganizationMember.fromJson(Map<String, dynamic> json) {
     return OrganizationMember(
       userId: json['user_id'],
       role: json['role'],
+      user: json['user'] != null ? User.fromJson(json['user']) : null,
     );
   }
 
@@ -66,6 +70,7 @@ class OrganizationMember {
     return {
       'user_id': userId,
       'role': role,
+      'user': user?.toJson(),
     };
   }
 }

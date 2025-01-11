@@ -33,6 +33,7 @@ import 'features/dashboard/controllers/dashboard_controller.dart';
 import 'features/dashboard/controllers/board_controller.dart';
 import 'core/middleware/auth_middleware.dart';
 import '../../../data/services/database_service.dart';
+import 'features/organization/bindings/organization_binding.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -134,6 +135,12 @@ class MyApp extends StatelessWidget {
           name: '/organizations',
           page: () => const OrganizationListView(),
           binding: DashboardBinding(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/organizations/:id',
+          page: () => const OrganizationDetailView(),
+          binding: OrganizationBinding(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(
