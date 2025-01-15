@@ -116,6 +116,67 @@ class TeamListView extends GetView<TeamController> {
   }
 
   void _showCreateDialog() {
-    // TODO: Implement create team dialog
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final organizationId = Get.parameters['organizationId'];
+
+    if (organizationId == null) {
+      Get.snackbar('Error', 'Organization ID is required');
+      return;
+    }
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Create Team'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Team Name',
+                hintText: 'Enter team name',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Description (Optional)',
+                hintText: 'Enter team description',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty) {
+                final controller = Get.find<TeamController>();
+                controller.createTeam(
+                  nameController.text.trim(),
+                  descriptionController.text.isEmpty
+                      ? null
+                      : descriptionController.text.trim(),
+                  int.parse(organizationId),
+                );
+              } else {
+                Get.snackbar(
+                  'Error',
+                  'Team name is required',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
   }
-} 
+}

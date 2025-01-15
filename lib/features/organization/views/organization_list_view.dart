@@ -18,7 +18,10 @@ class OrganizationListView extends GetView<OrganizationController> {
               children: [
                 _buildAppBar(),
                 Expanded(
-                  child: _buildOrganizationList(),
+                  child: RefreshIndicator(
+                    onRefresh: () => controller.loadOrganizations(),
+                    child: _buildOrganizationList(),
+                  ),
                 ),
               ],
             ),
@@ -51,6 +54,12 @@ class OrganizationListView extends GetView<OrganizationController> {
             ),
           ),
           const Spacer(),
+          IconButton(
+            icon: const Icon(FeatherIcons.refreshCw),
+            onPressed: () => controller.loadOrganizations(),
+            tooltip: 'Refresh',
+          ),
+          const SizedBox(width: 8),
           ElevatedButton.icon(
             icon: const Icon(FeatherIcons.plus),
             label: const Text('Create Organization'),
@@ -125,7 +134,7 @@ class OrganizationListView extends GetView<OrganizationController> {
   void _showCreateDialog() {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
-    
+
     Get.dialog(
       AlertDialog(
         title: const Text('Create Organization'),
@@ -160,7 +169,9 @@ class OrganizationListView extends GetView<OrganizationController> {
               if (nameController.text.isNotEmpty) {
                 controller.createOrganization(
                   nameController.text.trim(),
-                  descriptionController.text.isEmpty ? null : descriptionController.text.trim(),
+                  descriptionController.text.isEmpty
+                      ? null
+                      : descriptionController.text.trim(),
                 );
               }
             },

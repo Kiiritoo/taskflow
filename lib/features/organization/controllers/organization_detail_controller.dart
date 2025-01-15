@@ -10,17 +10,22 @@ class OrganizationDetailController extends GetxController {
 
   OrganizationDetailController(this._repository);
 
+  @override
+  void onInit() {
+    super.onInit();
+    final orgId = int.tryParse(Get.parameters['id'] ?? '');
+    if (orgId != null) {
+      loadOrganization(orgId);
+    }
+  }
+
   Future<void> loadOrganization(int id) async {
     try {
       isLoading.value = true;
       error.value = '';
       organization.value = await _repository.getOrganizationById(id);
-      if (organization.value == null) {
-        error.value = 'Organization not found';
-      }
     } catch (e) {
       error.value = e.toString();
-      Get.snackbar('Error', 'Failed to load organization details');
     } finally {
       isLoading.value = false;
     }
@@ -37,4 +42,32 @@ class OrganizationDetailController extends GetxController {
   Future<void> updateMemberRole(int userId, String newRole) async {
     // TODO: Implement update member role functionality
   }
-} 
+
+  Future<void> updateOrganization(
+      int id, String name, String? description) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+      await _repository.updateOrganization(id, name, description);
+      await loadOrganization(id);
+    } catch (e) {
+      error.value = e.toString();
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> deleteOrganization(int id) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+      await _repository.deleteOrganization(id);
+    } catch (e) {
+      error.value = e.toString();
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+}

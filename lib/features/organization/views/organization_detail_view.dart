@@ -4,17 +4,13 @@ import '../controllers/organization_detail_controller.dart';
 import '../../dashboard/views/dashboard_sidebar.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import '../../../data/models/organization.dart';
+import '../../../features/team/controllers/team_controller.dart';
 
 class OrganizationDetailView extends GetView<OrganizationDetailController> {
   const OrganizationDetailView({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final orgId = int.parse(Get.parameters['id'] ?? '0');
-    
-    // Load organization details when view is created
-    controller.loadOrganization(orgId);
-
     return Scaffold(
       body: Row(
         children: [
@@ -30,14 +26,35 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Error: ${controller.error.value}',
-                        style: const TextStyle(color: Colors.red),
+                      const Icon(
+                        FeatherIcons.alertTriangle,
+                        color: Colors.red,
+                        size: 48,
                       ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Something went wrong',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        controller.error.value,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.red[700],
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
                       ElevatedButton.icon(
                         icon: const Icon(FeatherIcons.refreshCw),
-                        label: const Text('Retry'),
-                        onPressed: () => controller.loadOrganization(orgId),
+                        label: const Text('Try Again'),
+                        onPressed: () {
+                          final orgId =
+                              int.tryParse(Get.parameters['id'] ?? '');
+                          if (orgId != null) {
+                            controller.loadOrganization(orgId);
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -46,7 +63,34 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
 
               final org = controller.organization.value;
               if (org == null) {
-                return const Center(child: Text('Organization not found'));
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        FeatherIcons.alertCircle,
+                        size: 48,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Organization Not Found',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'The requested organization could not be found.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(FeatherIcons.arrowLeft),
+                        label: const Text('Go Back'),
+                        onPressed: () => Get.back(),
+                      ),
+                    ],
+                  ),
+                );
               }
 
               return Padding(
@@ -75,9 +119,9 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
                           ],
                           onSelected: (value) {
                             if (value == 'edit') {
-                              // TODO: Implement edit
+                              _showEditDialog(org);
                             } else if (value == 'delete') {
-                              // TODO: Implement delete
+                              _showDeleteDialog(org);
                             }
                           },
                         ),
@@ -113,9 +157,7 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
             ElevatedButton.icon(
               icon: const Icon(FeatherIcons.plus),
               label: const Text('Create Team'),
-              onPressed: () {
-                // TODO: Implement create team
-              },
+              onPressed: () => _showCreateTeamDialog(org.id),
             ),
           ],
         ),
@@ -138,6 +180,212 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
             },
           ),
       ],
+    );
+  }
+
+  void _showCreateTeamDialog(int organizationId) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Create Team'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Team Name',
+                  hintText: 'Enter team name',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a team name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (Optional)',
+                  hintText: 'Enter team description',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                try {
+                  final teamController = Get.find<TeamController>();
+
+                  // Ensure we're creating the team in the correct organization
+                  if (organizationId != controller.organization.value?.id) {
+                    throw Exception('Invalid organization context');
+                  }
+
+                  await teamController.createTeam(
+                    nameController.text.trim(),
+                    descriptionController.text.isEmpty
+                        ? null
+                        : descriptionController.text.trim(),
+                    organizationId,
+                  );
+
+                  // Refresh organization details to show new team
+                  controller.loadOrganization(organizationId);
+                  Get.back();
+                  Get.snackbar(
+                    'Success',
+                    'Team created successfully',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                } catch (e) {
+                  Get.back();
+                  Get.snackbar(
+                    'Error',
+                    'Failed to create team: ${e.toString()}',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.red[100],
+                    colorText: Colors.red[900],
+                  );
+                }
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditDialog(Organization org) {
+    final nameController = TextEditingController(text: org.name);
+    final descriptionController =
+        TextEditingController(text: org.description ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Edit Organization'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Organization Name',
+                  hintText: 'Enter organization name',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter organization name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (Optional)',
+                  hintText: 'Enter organization description',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                try {
+                  await controller.updateOrganization(
+                    org.id,
+                    nameController.text.trim(),
+                    descriptionController.text.isEmpty
+                        ? null
+                        : descriptionController.text.trim(),
+                  );
+                  Get.back();
+                } catch (e) {
+                  Get.snackbar(
+                    'Error',
+                    'Failed to update organization: ${e.toString()}',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.red[100],
+                    colorText: Colors.red[900],
+                  );
+                }
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteDialog(Organization org) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Delete Organization'),
+        content: Text(
+            'Are you sure you want to delete "${org.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            onPressed: () async {
+              try {
+                await controller.deleteOrganization(org.id);
+                Get.back(); // Close dialog
+                Get.back(); // Go back to organizations list
+                Get.snackbar(
+                  'Success',
+                  'Organization deleted successfully',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } catch (e) {
+                Get.back();
+                Get.snackbar(
+                  'Error',
+                  'Failed to delete organization: ${e.toString()}',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.red[100],
+                  colorText: Colors.red[900],
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 

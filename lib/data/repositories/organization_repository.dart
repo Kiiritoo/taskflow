@@ -22,9 +22,9 @@ class OrganizationRepository {
         LEFT JOIN organization_members om ON om.organization_id = o.id
         GROUP BY o.id, o.name, o.description, o.created_by, o.created_at, u.full_name
       ''');
-      
+
       await conn.close();
-      
+
       return results.map((row) {
         return Organization(
           id: row['id'] as int,
@@ -42,19 +42,19 @@ class OrganizationRepository {
     }
   }
 
-  Future<Organization> createOrganization(String name, String? description) async {
+  Future<Organization> createOrganization(
+      String name, String? description) async {
     try {
       final conn = await _db.getConnection();
       final result = await conn.query(
-        'INSERT INTO organizations (name, description) VALUES (?, ?)',
-        [name, description]
-      );
-      
+          'INSERT INTO organizations (name, description) VALUES (?, ?)',
+          [name, description]);
+
       final id = result.insertId;
       final createdAt = DateTime.now();
-      
+
       await conn.close();
-      
+
       return Organization(
         id: id!,
         name: name,
@@ -72,30 +72,61 @@ class OrganizationRepository {
   Future<void> deleteOrganization(int id) async {
     try {
       final conn = await _db.getConnection();
-      
+
       // Start transaction
       await conn.query('START TRANSACTION');
-      
-      try {
-        // Delete related tasks first
-        await conn.query(
-          'DELETE t FROM tasks t '
-          'INNER JOIN projects p ON t.project_id = p.id '
-          'WHERE p.organization_id = ?',
-          [id]
-        );
 
-        // Delete related projects
+      try {
+        // Delete task comments first
+        await conn.query('''
+          DELETE tc FROM task_comments tc
+          INNER JOIN tasks t ON tc.task_id = t.id
+          INNER JOIN projects p ON t.project_id = p.id
+          WHERE p.organization_id = ?
+        ''', [id]);
+
+        // Delete task attachments
+        await conn.query('''
+          DELETE a FROM attachments a
+          INNER JOIN tasks t ON a.task_id = t.id
+          INNER JOIN projects p ON t.project_id = p.id
+          WHERE p.organization_id = ?
+        ''', [id]);
+
+        // Delete tasks
+        await conn.query('''
+          DELETE t FROM tasks t
+          INNER JOIN projects p ON t.project_id = p.id
+          WHERE p.organization_id = ?
+        ''', [id]);
+
+        // Delete project attachments
+        await conn.query('''
+          DELETE a FROM attachments a
+          INNER JOIN projects p ON a.project_id = p.id
+          WHERE p.organization_id = ?
+        ''', [id]);
+
+        // Delete projects
+        await conn
+            .query('DELETE FROM projects WHERE organization_id = ?', [id]);
+
+        // Delete team members
+        await conn.query('''
+          DELETE tm FROM team_members tm
+          INNER JOIN teams t ON tm.team_id = t.id
+          WHERE t.organization_id = ?
+        ''', [id]);
+
+        // Delete teams
+        await conn.query('DELETE FROM teams WHERE organization_id = ?', [id]);
+
+        // Delete organization members
         await conn.query(
-          'DELETE FROM projects WHERE organization_id = ?',
-          [id]
-        );
+            'DELETE FROM organization_members WHERE organization_id = ?', [id]);
 
         // Finally delete the organization
-        await conn.query(
-          'DELETE FROM organizations WHERE id = ?',
-          [id]
-        );
+        await conn.query('DELETE FROM organizations WHERE id = ?', [id]);
 
         // Commit transaction
         await conn.query('COMMIT');
@@ -114,7 +145,7 @@ class OrganizationRepository {
   Future<Organization?> getOrganizationById(int id) async {
     try {
       final conn = await _db.getConnection();
-      
+
       // Get organization with creator info
       final orgResults = await conn.query('''
         SELECT o.*, u.full_name as creator_name
@@ -129,7 +160,7 @@ class OrganizationRepository {
       }
 
       final orgRow = orgResults.first;
-      
+
       // Get teams for this organization
       final teamResults = await conn.query('''
         SELECT t.*, COUNT(tm.id) as member_count
@@ -149,25 +180,29 @@ class OrganizationRepository {
 
       await conn.close();
 
-      final teams = teamResults.map((row) => Team(
-        id: row['id'] as int,
-        name: row['name'].toString(),
-        description: row['description']?.toString(),
-        organizationId: row['organization_id'] as int,
-        members: [],
-      )).toList();
+      final teams = teamResults
+          .map((row) => Team(
+                id: row['id'] as int,
+                name: row['name'].toString(),
+                description: row['description']?.toString(),
+                organizationId: row['organization_id'] as int,
+                members: [],
+              ))
+          .toList();
 
-      final members = memberResults.map((row) => OrganizationMember(
-        userId: row['user_id'] as int,
-        role: row['role'].toString(),
-        user: User(
-          id: row['id'].toString(),
-          username: row['username'].toString(),
-          fullName: row['full_name']?.toString() ?? '',
-          email: row['email'].toString(),
-          profileImageUrl: row['profile_image_url']?.toString(),
-        ),
-      )).toList();
+      final members = memberResults
+          .map((row) => OrganizationMember(
+                userId: row['user_id'] as int,
+                role: row['role'].toString(),
+                user: User(
+                  id: row['id'].toString(),
+                  username: row['username'].toString(),
+                  fullName: row['full_name']?.toString() ?? '',
+                  email: row['email'].toString(),
+                  profileImageUrl: row['profile_image_url']?.toString(),
+                ),
+              ))
+          .toList();
 
       return Organization(
         id: orgRow['id'] as int,
@@ -181,6 +216,19 @@ class OrganizationRepository {
     } catch (e) {
       print('Error fetching organization details: $e');
       throw Exception('Failed to load organization details: $e');
+    }
+  }
+
+  Future<void> updateOrganization(
+      int id, String name, String? description) async {
+    try {
+      final conn = await _db.getConnection();
+      await conn.query(
+          'UPDATE organizations SET name = ?, description = ? WHERE id = ?',
+          [name, description, id]);
+      await conn.close();
+    } catch (e) {
+      throw Exception('Failed to update organization: $e');
     }
   }
 }
