@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 import '../../../data/models/user.dart';
 import '../../../data/repositories/auth_repository.dart';
 import 'package:flutter/material.dart';
-import '../../../data/services/email_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -13,14 +12,14 @@ class AuthController extends GetxController {
   final error = ''.obs;
   final rememberMe = false.obs;
   final resetEmailSent = false.obs;
-  
+
   // Form controllers
   final registerFormKey = GlobalKey<FormState>();
   final registerEmailController = TextEditingController();
   final registerPasswordController = TextEditingController();
   final registerConfirmPasswordController = TextEditingController();
   final registerFullNameController = TextEditingController();
-  
+
   AuthController(this.authRepository);
 
   String? validateEmail(String? value) {
@@ -59,11 +58,11 @@ class AuthController extends GetxController {
       error.value = '';
       final loggedInUser = await authRepository.login(email, password);
       user.value = loggedInUser;
-      
+
       // Store user data in shared preferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_data', jsonEncode(loggedInUser.toJson()));
-      
+
       Get.offAllNamed('/dashboard');
     } catch (e) {
       error.value = e.toString().replaceAll('Exception: ', '');
@@ -132,4 +131,3 @@ class AuthController extends GetxController {
     }
   }
 }
-

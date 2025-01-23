@@ -123,7 +123,7 @@ class OrganizationListView extends GetView<OrganizationController> {
               title: Text(org.name),
               subtitle: Text(org.description ?? ''),
               trailing: const Icon(FeatherIcons.chevronRight),
-              onTap: () => Get.toNamed('/organizations/${org.id}'),
+              onTap: () => Get.offNamed('/organizations/${org.id}'),
             ),
           );
         },
@@ -134,30 +134,41 @@ class OrganizationListView extends GetView<OrganizationController> {
   void _showCreateDialog() {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
     Get.dialog(
       AlertDialog(
         title: const Text('Create Organization'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Organization Name',
-                hintText: 'Enter organization name',
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Organization Name',
+                  hintText: 'Enter organization name',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter organization name';
+                  }
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (Optional)',
-                hintText: 'Enter organization description',
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (Optional)',
+                  hintText: 'Enter organization description',
+                ),
+                maxLines: 3,
               ),
-              maxLines: 3,
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -165,9 +176,9 @@ class OrganizationListView extends GetView<OrganizationController> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                controller.createOrganization(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                await controller.createOrganization(
                   nameController.text.trim(),
                   descriptionController.text.isEmpty
                       ? null
@@ -179,6 +190,7 @@ class OrganizationListView extends GetView<OrganizationController> {
           ),
         ],
       ),
+      barrierDismissible: false,
     );
   }
 }

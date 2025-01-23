@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/team_controller.dart';
 import '../../dashboard/views/dashboard_sidebar.dart';
+import '../../dashboard/views/components/navbar.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
+import '../../../data/models/team.dart';
 
-// Sisanya tetap sama 
 class TeamDetailView extends GetView<TeamController> {
   const TeamDetailView({Key? key}) : super(key: key);
 
@@ -17,11 +18,12 @@ class TeamDetailView extends GetView<TeamController> {
           Expanded(
             child: Column(
               children: [
-                _buildAppBar(),
+                const DashboardNavbar(),
+                _buildAppBar(context),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
-                    child: _buildTeamContent(),
+                    child: _buildTeamContent(context),
                   ),
                 ),
               ],
@@ -32,7 +34,7 @@ class TeamDetailView extends GetView<TeamController> {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -48,189 +50,174 @@ class TeamDetailView extends GetView<TeamController> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(FeatherIcons.arrowLeft),
             onPressed: () => Get.back(),
+            tooltip: 'Back to Teams',
           ),
           const SizedBox(width: 16),
           Obx(() {
-            final team = controller.teams.firstWhere(
-              (t) => t.id.toString() == Get.parameters['id'],
-              orElse: () => throw Exception('Team not found'),
-            );
+            final team = controller.currentTeam.value;
             return Text(
-              team.name,
+              team?.name ?? 'Team Details',
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             );
           }),
-          const Spacer(),
-          _buildActions(),
         ],
       ),
     );
   }
 
-  Widget _buildTeamContent() {
+  Widget _buildTeamContent(BuildContext context) {
     return Obx(() {
-      final team = controller.teams.firstWhere(
-        (t) => t.id.toString() == Get.parameters['id'],
-        orElse: () => throw Exception('Team not found'),
-      );
+      final team = controller.currentTeam.value;
+      if (team == null) return const Center(child: Text('Team not found'));
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTeamInfo(team),
+          _buildTeamHeader(team, context),
           const SizedBox(height: 32),
-          _buildMembersList(team),
+          _buildMembersSection(team),
+          const SizedBox(height: 32),
+          _buildProjectsSection(team),
+          const SizedBox(height: 32),
+          _buildRecentActivities(team),
         ],
       );
     });
   }
 
-  Widget _buildTeamInfo(team) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Team Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+  Widget _buildTeamHeader(Team team, BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                team.name,
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
+              if (team.description != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  team.description!,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            ],
+          ),
+        ),
+        PopupMenuButton(
+          icon: const Icon(FeatherIcons.moreVertical),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'edit',
+              child: Text('Edit Team'),
             ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('Name'),
-              subtitle: Text(team.name),
-              leading: const Icon(Icons.group),
-            ),
-            if (team.description != null)
-              ListTile(
-                title: const Text('Description'),
-                subtitle: Text(team.description!),
-                leading: const Icon(Icons.description),
-              ),
-            ListTile(
-              title: const Text('Created At'),
-              subtitle: Text(team.createdAt.toString()),
-              leading: const Icon(Icons.calendar_today),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Text('Delete Team'),
             ),
           ],
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showEditDialog(team);
+            } else if (value == 'delete') {
+              _showDeleteDialog(team);
+            }
+          },
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildMembersList(team) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  void _showEditDialog(Team team) {
+    // TODO: Implement edit team dialog
+  }
+
+  void _showDeleteDialog(Team team) {
+    // TODO: Implement delete team dialog
+  }
+
+  Widget _buildMembersSection(Team team) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Team Members',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddMemberDialog(),
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Add Member'),
-                ),
-              ],
+            Text(
+              'Members',
+              style: Get.textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: team.members.length,
-              itemBuilder: (context, index) {
-                final member = team.members[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(member.userId.toString()[0]),
-                  ),
-                  title: Text('User ${member.userId}'),
-                  subtitle: Text(member.role),
-                  trailing: PopupMenuButton(
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'change_role',
-                        child: Text('Change Role'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'remove',
-                        child: Text('Remove'),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'change_role') {
-                        _showChangeRoleDialog(member);
-                      } else if (value == 'remove') {
-                        _showRemoveMemberDialog(member);
-                      }
-                    },
-                  ),
-                );
+            ElevatedButton.icon(
+              icon: const Icon(FeatherIcons.userPlus),
+              label: const Text('Add Member'),
+              onPressed: () {
+                // TODO: Implement add member
               },
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildActions() {
-    return PopupMenuButton(
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'edit',
-          child: Text('Edit Team'),
-        ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete Team'),
-        ),
+        const SizedBox(height: 16),
+        if (team.members.isEmpty)
+          const Center(child: Text('No members yet'))
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            itemCount: team.members.length,
+            itemBuilder: (context, index) {
+              final member = team.members[index];
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: member.user?.profileImageUrl != null
+                      ? NetworkImage(member.user!.profileImageUrl!)
+                      : null,
+                  child: member.user?.profileImageUrl == null
+                      ? Text(member.user?.fullName[0] ?? '')
+                      : null,
+                ),
+                title: Text(member.user?.fullName ?? 'Unknown User'),
+                subtitle: Text(member.role),
+              );
+            },
+          ),
       ],
-      onSelected: (value) {
-        if (value == 'edit') {
-          _showEditDialog();
-        } else if (value == 'delete') {
-          _showDeleteDialog();
-        }
-      },
     );
   }
 
-  void _showAddMemberDialog() {
-    // TODO: Implement add member dialog
+  Widget _buildProjectsSection(Team team) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Projects',
+          style: Get.textTheme.titleLarge,
+        ),
+        const SizedBox(height: 16),
+        const Center(
+            child: Text('No projects yet')), // TODO: Implement projects list
+      ],
+    );
   }
 
-  void _showChangeRoleDialog(member) {
-    // TODO: Implement change role dialog
-  }
-
-  void _showRemoveMemberDialog(member) {
-    // TODO: Implement remove member dialog
-  }
-
-  void _showEditDialog() {
-    // TODO: Implement edit team dialog
-  }
-
-  void _showDeleteDialog() {
-    // TODO: Implement delete team dialog
+  Widget _buildRecentActivities(Team team) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Recent Activities',
+          style: Get.textTheme.titleLarge,
+        ),
+        const SizedBox(height: 16),
+        const Center(
+            child: Text('No recent activities')), // TODO: Implement activities
+      ],
+    );
   }
 }

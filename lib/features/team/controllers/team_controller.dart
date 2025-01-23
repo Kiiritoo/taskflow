@@ -1,60 +1,132 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../data/repositories/team_repository.dart';
 import '../../../data/models/team.dart';
+import '../../../data/repositories/team_repository.dart';
 
 class TeamController extends GetxController {
   final TeamRepository _repository;
-  final teams = <Team>[].obs;
+  final currentTeam = Rxn<Team>();
   final isLoading = false.obs;
   final error = ''.obs;
+  final teams = <Team>[].obs;
+  final currentOrganizationId = RxnInt();
 
   TeamController(this._repository);
 
-  Future<void> loadTeams(int organizationId) async {
+  @override
+  void onInit() {
+    super.onInit();
+    _loadTeamFromRoute();
+
+    // Add this to load organization teams
+    final orgId = int.tryParse(Get.parameters['organizationId'] ?? '');
+    if (orgId != null) {
+      setCurrentOrganization(orgId);
+    }
+  }
+
+  void _loadTeamFromRoute() {
+    final teamId = int.tryParse(Get.parameters['id'] ?? '');
+    if (teamId != null) {
+      loadTeam(teamId);
+    }
+  }
+
+  Future<void> loadTeam(int id) async {
     try {
       isLoading.value = true;
       error.value = '';
-      teams.value = await _repository.getTeamsByOrganization(organizationId);
+
+      final team = await _repository.getTeamById(id);
+      if (team != null) {
+        currentTeam.value = team;
+      } else {
+        error.value = 'Team not found';
+        Get.snackbar(
+          'Error',
+          'Team not found',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red[100],
+          colorText: Colors.red[900],
+        );
+      }
     } catch (e) {
       error.value = e.toString();
+      Get.snackbar(
+        'Error',
+        'Failed to load team: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> createTeam(String name, String? description, int organizationId) async {
+  void setCurrentOrganization(int orgId) {
+    currentOrganizationId.value = orgId;
+    loadTeams();
+  }
+
+  Future<void> loadTeams() async {
     try {
       isLoading.value = true;
       error.value = '';
-      final team = await _repository.createTeam(name, description, organizationId);
+      if (currentOrganizationId.value != null) {
+        final loadedTeams = await _repository
+            .getTeamsByOrganization(currentOrganizationId.value!);
+        teams.value = loadedTeams;
+      } else {
+        teams.clear();
+      }
+    } catch (e) {
+      error.value = e.toString();
+      Get.snackbar(
+        'Error',
+        'Failed to load teams: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> createTeam(
+      String name, String? description, int organizationId) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+
+      final team =
+          await _repository.createTeam(name, description, organizationId);
       teams.add(team);
+
+      // Refresh teams list for the current organization
+      if (currentOrganizationId.value == organizationId) {
+        await loadTeams();
+      }
+
       Get.back();
-      Get.snackbar('Success', 'Team created successfully');
+      Get.snackbar(
+        'Success',
+        'Team created successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green[100],
+        colorText: Colors.green[900],
+      );
     } catch (e) {
-      error.value = e.toString();
-      Get.snackbar('Error', 'Failed to create team');
+      Get.snackbar(
+        'Error',
+        'Failed to create team: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+      );
     } finally {
       isLoading.value = false;
     }
   }
-
-  Future<void> addTeamMember(int teamId, int userId, String role) async {
-    try {
-      await _repository.addTeamMember(teamId, userId, role);
-      await loadTeams(teams.firstWhere((team) => team.id == teamId).organizationId);
-      Get.snackbar('Success', 'Member added successfully');
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to add member');
-    }
-  }
-
-  void handleError(dynamic error) {
-    isLoading.value = false;
-    error.value = error.toString();
-    Get.snackbar(
-      'Error',
-      'Failed to load teams: ${error.toString()}',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-} 
+}

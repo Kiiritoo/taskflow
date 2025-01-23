@@ -22,20 +22,19 @@ class DashboardSidebar extends GetView<DashboardController> {
                 _buildNavItem(FeatherIcons.home, 'Dashboard', '/dashboard'),
                 _buildNavItem(FeatherIcons.clipboard, 'My Tasks', '/tasks'),
                 _buildNavItem(FeatherIcons.user, 'My Profile', '/profile'),
-                
                 _buildSidebarSection('ORGANIZATION'),
-                _buildNavItem(FeatherIcons.briefcase, 'Organizations', '/organizations'),
+                _buildNavItem(
+                    FeatherIcons.briefcase, 'Organizations', '/organizations'),
                 _buildNavItem(FeatherIcons.users, 'Teams', '/teams'),
-                
                 _buildSidebarSection('SUPPORT'),
                 _buildNavItem(FeatherIcons.helpCircle, 'Help Center', '/help'),
-                _buildNavItem(FeatherIcons.messageCircle, 'Contact Support', '/support'),
+                _buildNavItem(
+                    FeatherIcons.messageCircle, 'Contact Support', '/support'),
                 _buildNavItem(FeatherIcons.bookOpen, 'Documentation', '/docs'),
-                
                 _buildSidebarSection('SETTINGS'),
                 _buildNavItem(FeatherIcons.settings, 'Settings', '/settings'),
-                _buildNavItem(FeatherIcons.bell, 'Notifications', '/notifications'),
-                
+                _buildNavItem(
+                    FeatherIcons.bell, 'Notifications', '/notifications'),
                 const Divider(height: 32),
                 _buildNavItem(
                   FeatherIcons.logOut,
@@ -94,31 +93,29 @@ class DashboardSidebar extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, String route, {VoidCallback? onTap}) {
-    final isActive = Get.currentRoute == route;
-    
+  Widget _buildNavItem(IconData icon, String label, String route,
+      {Function()? onTap}) {
+    final isActive = onTap == null
+        ? (route == '/organizations'
+            ? Get.currentRoute.startsWith('/organizations')
+            : Get.currentRoute == route)
+        : false;
+
     return ListTile(
       leading: Icon(
         icon,
-        color: isActive ? Colors.blue : Colors.grey[600],
-        size: 18,
+        color: isActive ? Colors.blue : Colors.grey[700],
       ),
       title: Text(
         label,
         style: TextStyle(
-          color: isActive ? Colors.blue : Colors.grey[800],
-          fontSize: 13,
-          fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
+          color: isActive ? Colors.blue : Colors.grey[700],
+          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
         ),
       ),
+      onTap: onTap ?? () => Get.offNamed(route),
       selected: isActive,
-      onTap: onTap ?? () => Get.toNamed(route),
       selectedTileColor: Colors.blue.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      dense: true,
     );
   }
-} 
+}

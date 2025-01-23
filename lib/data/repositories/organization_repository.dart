@@ -146,12 +146,17 @@ class OrganizationRepository {
     try {
       final conn = await _db.getConnection();
 
-      // Get organization with creator info
+      // Get organization details
       final orgResults = await conn.query('''
-        SELECT o.*, u.full_name as creator_name
+        SELECT o.*, u.full_name as creator_name,
+               COUNT(DISTINCT t.id) as team_count,
+               COUNT(DISTINCT om.user_id) as member_count
         FROM organizations o
         LEFT JOIN users u ON o.created_by = u.id
+        LEFT JOIN teams t ON t.organization_id = o.id
+        LEFT JOIN organization_members om ON om.organization_id = o.id
         WHERE o.id = ?
+        GROUP BY o.id
       ''', [id]);
 
       if (orgResults.isEmpty) {
@@ -159,20 +164,14 @@ class OrganizationRepository {
         return null;
       }
 
-      final orgRow = orgResults.first;
-
       // Get teams for this organization
       final teamResults = await conn.query('''
-        SELECT t.*, COUNT(tm.id) as member_count
-        FROM teams t
-        LEFT JOIN team_members tm ON t.id = tm.team_id
-        WHERE t.organization_id = ?
-        GROUP BY t.id
+        SELECT * FROM teams WHERE organization_id = ?
       ''', [id]);
 
       // Get members for this organization
       final memberResults = await conn.query('''
-        SELECT om.*, u.id, u.username, u.full_name, u.email, u.profile_image_url
+        SELECT om.*, u.id as user_id, u.username, u.full_name, u.email, u.profile_image_url
         FROM organization_members om
         JOIN users u ON om.user_id = u.id
         WHERE om.organization_id = ?
@@ -180,29 +179,7 @@ class OrganizationRepository {
 
       await conn.close();
 
-      final teams = teamResults
-          .map((row) => Team(
-                id: row['id'] as int,
-                name: row['name'].toString(),
-                description: row['description']?.toString(),
-                organizationId: row['organization_id'] as int,
-                members: [],
-              ))
-          .toList();
-
-      final members = memberResults
-          .map((row) => OrganizationMember(
-                userId: row['user_id'] as int,
-                role: row['role'].toString(),
-                user: User(
-                  id: row['id'].toString(),
-                  username: row['username'].toString(),
-                  fullName: row['full_name']?.toString() ?? '',
-                  email: row['email'].toString(),
-                  profileImageUrl: row['profile_image_url']?.toString(),
-                ),
-              ))
-          .toList();
+      final orgRow = orgResults.first;
 
       return Organization(
         id: orgRow['id'] as int,
@@ -210,8 +187,20 @@ class OrganizationRepository {
         description: orgRow['description']?.toString(),
         createdBy: orgRow['created_by'] as int?,
         createdAt: orgRow['created_at'] as DateTime,
-        teams: teams,
-        members: members,
+        teams: teamResults.map((row) => Team.fromJson(row.fields)).toList(),
+        members: memberResults
+            .map((row) => OrganizationMember(
+                  userId: row['user_id'] as int,
+                  role: row['role'].toString(),
+                  user: User(
+                    id: row['user_id'].toString(),
+                    username: row['username'].toString(),
+                    fullName: row['full_name']?.toString() ?? '',
+                    email: row['email'].toString(),
+                    profileImageUrl: row['profile_image_url']?.toString(),
+                  ),
+                ))
+            .toList(),
       );
     } catch (e) {
       print('Error fetching organization details: $e');

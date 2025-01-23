@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 11, 2025 at 08:27 AM
+-- Generation Time: Jan 15, 2025 at 08:58 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -75,7 +75,9 @@ CREATE TABLE `organizations` (
 --
 
 INSERT INTO `organizations` (`id`, `name`, `description`, `created_by`, `created_at`) VALUES
-(1, 'TaskFlow', 'tes', NULL, '2025-01-11 06:32:37');
+(48, 'Sekolah', 'No description', NULL, '2025-01-15 07:38:03'),
+(49, 'KDS', 'No description', NULL, '2025-01-15 07:38:20'),
+(50, 'oaskd', 'No description', NULL, '2025-01-15 07:52:40');
 
 -- --------------------------------------------------------
 
@@ -104,6 +106,19 @@ CREATE TABLE `projects` (
   `organization_id` int(11) DEFAULT NULL,
   `status` varchar(20) DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `projects_teams`
+--
+
+CREATE TABLE `projects_teams` (
+  `id` int(11) NOT NULL,
+  `project_id` int(11) NOT NULL,
+  `team_id` int(11) NOT NULL,
+  `assigned_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -148,6 +163,29 @@ CREATE TABLE `teams` (
   `name` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
   `organization_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `teams`
+--
+
+INSERT INTO `teams` (`id`, `name`, `description`, `organization_id`, `created_at`) VALUES
+(7, 'sad', NULL, 48, '2025-01-15 07:52:49');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `team_activities`
+--
+
+CREATE TABLE `team_activities` (
+  `id` int(11) NOT NULL,
+  `team_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `activity_type` varchar(50) NOT NULL,
+  `description` text NOT NULL,
+  `reference_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -234,6 +272,14 @@ ALTER TABLE `projects`
   ADD KEY `organization_id` (`organization_id`);
 
 --
+-- Indexes for table `projects_teams`
+--
+ALTER TABLE `projects_teams`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `project_team_unique` (`project_id`,`team_id`),
+  ADD KEY `team_id` (`team_id`);
+
+--
 -- Indexes for table `tasks`
 --
 ALTER TABLE `tasks`
@@ -255,6 +301,14 @@ ALTER TABLE `task_comments`
 ALTER TABLE `teams`
   ADD PRIMARY KEY (`id`),
   ADD KEY `organization_id` (`organization_id`);
+
+--
+-- Indexes for table `team_activities`
+--
+ALTER TABLE `team_activities`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `team_id` (`team_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `team_members`
@@ -292,7 +346,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `organizations`
 --
 ALTER TABLE `organizations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `organization_members`
@@ -304,6 +358,12 @@ ALTER TABLE `organization_members`
 -- AUTO_INCREMENT for table `projects`
 --
 ALTER TABLE `projects`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `projects_teams`
+--
+ALTER TABLE `projects_teams`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -322,6 +382,12 @@ ALTER TABLE `task_comments`
 -- AUTO_INCREMENT for table `teams`
 --
 ALTER TABLE `teams`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `team_activities`
+--
+ALTER TABLE `team_activities`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -374,6 +440,13 @@ ALTER TABLE `projects`
   ADD CONSTRAINT `projects_ibfk_1` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`);
 
 --
+-- Constraints for table `projects_teams`
+--
+ALTER TABLE `projects_teams`
+  ADD CONSTRAINT `projects_teams_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`),
+  ADD CONSTRAINT `projects_teams_ibfk_2` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`);
+
+--
 -- Constraints for table `tasks`
 --
 ALTER TABLE `tasks`
@@ -392,6 +465,13 @@ ALTER TABLE `task_comments`
 --
 ALTER TABLE `teams`
   ADD CONSTRAINT `teams_ibfk_1` FOREIGN KEY (`organization_id`) REFERENCES `organizations` (`id`);
+
+--
+-- Constraints for table `team_activities`
+--
+ALTER TABLE `team_activities`
+  ADD CONSTRAINT `team_activities_ibfk_1` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`),
+  ADD CONSTRAINT `team_activities_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `team_members`

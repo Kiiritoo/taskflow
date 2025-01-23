@@ -73,12 +73,12 @@ class LoginView extends GetView<AuthController> {
                       Row(
                         children: [
                           Obx(() => Checkbox(
-                            value: controller.rememberMe.value,
-                            onChanged: (value) {
-                              controller.rememberMe.value = value ?? false;
-                            },
-                            activeColor: Colors.blue,
-                          )),
+                                value: controller.rememberMe.value,
+                                onChanged: (value) {
+                                  controller.rememberMe.value = value ?? false;
+                                },
+                                activeColor: Colors.blue,
+                              )),
                           const Text(
                             'Remember me',
                             style: TextStyle(
@@ -101,52 +101,56 @@ class LoginView extends GetView<AuthController> {
                       ),
                       const SizedBox(height: 32),
                       Obx(() => SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: controller.isLoading.value
-                              ? null
-                              : () {
-                                  if (_formKey.currentState!.validate()) {
-                                    controller.login(
-                                      emailController.text.trim(),
-                                      passwordController.text,
-                                    );
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 2,
-                          ),
-                          child: controller.isLoading.value
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Text(
-                                  'Login',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: controller.isLoading.value
+                                  ? null
+                                  : () {
+                                      if (_formKey.currentState!.validate()) {
+                                        controller.login(
+                                          emailController.text.trim(),
+                                          passwordController.text,
+                                        );
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                        ),
-                      )),
+                                elevation: 2,
+                              ),
+                              child: controller.isLoading.value
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Login',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          )),
                       const SizedBox(height: 24),
                       Obx(() => controller.error.value.isNotEmpty
                           ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
                                 color: Colors.red.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                                border: Border.all(
+                                    color: Colors.red.withOpacity(0.3)),
                               ),
                               child: Text(
                                 controller.error.value,

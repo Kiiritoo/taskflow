@@ -5,6 +5,7 @@ import '../../dashboard/views/dashboard_sidebar.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import '../../../data/models/organization.dart';
 import '../../../features/team/controllers/team_controller.dart';
+import '../../dashboard/views/components/navbar.dart';
 
 class OrganizationDetailView extends GetView<OrganizationDetailController> {
   const OrganizationDetailView({Key? key}) : super(key: key);
@@ -16,128 +17,188 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
         children: [
           const DashboardSidebar(),
           Expanded(
-            child: Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
+            child: Column(
+              children: [
+                const DashboardNavbar(),
+                _buildAppBar(context),
+                Expanded(
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-              if (controller.error.value.isNotEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        FeatherIcons.alertTriangle,
-                        color: Colors.red,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Something went wrong',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        controller.error.value,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.red[700],
+                    if (controller.error.value.isNotEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              FeatherIcons.alertTriangle,
+                              color: Colors.red,
+                              size: 48,
                             ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(FeatherIcons.refreshCw),
-                        label: const Text('Try Again'),
-                        onPressed: () {
-                          final orgId =
-                              int.tryParse(Get.parameters['id'] ?? '');
-                          if (orgId != null) {
-                            controller.loadOrganization(orgId);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              final org = controller.organization.value;
-              if (org == null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        FeatherIcons.alertCircle,
-                        size: 48,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Organization Not Found',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'The requested organization could not be found.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(FeatherIcons.arrowLeft),
-                        label: const Text('Go Back'),
-                        onPressed: () => Get.back(),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          org.name,
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                        PopupMenuButton(
-                          icon: const Icon(FeatherIcons.moreVertical),
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Edit Organization'),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Something went wrong',
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Delete Organization'),
+                            const SizedBox(height: 8),
+                            Text(
+                              controller.error.value,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Colors.red[700],
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              icon: const Icon(FeatherIcons.refreshCw),
+                              label: const Text('Try Again'),
+                              onPressed: () {
+                                final orgId =
+                                    int.tryParse(Get.parameters['id'] ?? '');
+                                if (orgId != null) {
+                                  controller.loadOrganization(orgId);
+                                }
+                              },
                             ),
                           ],
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _showEditDialog(org);
-                            } else if (value == 'delete') {
-                              _showDeleteDialog(org);
-                            }
-                          },
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(org.description ?? 'No description'),
-                    const SizedBox(height: 32),
-                    _buildTeamsSection(org),
-                    const SizedBox(height: 32),
-                    _buildMembersSection(org),
-                  ],
+                      );
+                    }
+
+                    final org = controller.organization.value;
+                    if (org == null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              FeatherIcons.alertCircle,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Organization Not Found',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'The requested organization could not be found.',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              icon: const Icon(FeatherIcons.arrowLeft),
+                              label: const Text('Go Back'),
+                              onPressed: () {
+                                Get.offNamed('/organizations');
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return SingleChildScrollView(
+                      child: _buildContent(context),
+                    );
+                  }),
                 ),
-              );
-            }),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(FeatherIcons.arrowLeft),
+            onPressed: () {
+              Get.offNamed('/organizations');
+            },
+            tooltip: 'Back to Organizations',
+          ),
+          const SizedBox(width: 16),
+          Obx(() {
+            final org = controller.organization.value;
+            return Text(
+              org?.name ?? 'Organization Details',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    final org = controller.organization.value;
+    if (org == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                org.name,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              PopupMenuButton(
+                icon: const Icon(FeatherIcons.moreVertical),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Edit Organization'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Delete Organization'),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _showEditDialog(org);
+                  } else if (value == 'delete') {
+                    _showDeleteDialog(org);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(org.description ?? 'No description'),
+          const SizedBox(height: 32),
+          _buildTeamsSection(org),
+          const SizedBox(height: 32),
+          _buildMembersSection(org),
         ],
       ),
     );
@@ -187,6 +248,9 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final teamController = Get.find<TeamController>();
+
+    teamController.setCurrentOrganization(organizationId);
 
     Get.dialog(
       AlertDialog(
@@ -229,40 +293,16 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
           TextButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
-                try {
-                  final teamController = Get.find<TeamController>();
+                await teamController.createTeam(
+                  nameController.text.trim(),
+                  descriptionController.text.isEmpty
+                      ? null
+                      : descriptionController.text.trim(),
+                  organizationId,
+                );
 
-                  // Ensure we're creating the team in the correct organization
-                  if (organizationId != controller.organization.value?.id) {
-                    throw Exception('Invalid organization context');
-                  }
-
-                  await teamController.createTeam(
-                    nameController.text.trim(),
-                    descriptionController.text.isEmpty
-                        ? null
-                        : descriptionController.text.trim(),
-                    organizationId,
-                  );
-
-                  // Refresh organization details to show new team
-                  controller.loadOrganization(organizationId);
-                  Get.back();
-                  Get.snackbar(
-                    'Success',
-                    'Team created successfully',
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
-                } catch (e) {
-                  Get.back();
-                  Get.snackbar(
-                    'Error',
-                    'Failed to create team: ${e.toString()}',
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: Colors.red[100],
-                    colorText: Colors.red[900],
-                  );
-                }
+                // Refresh organization details to show new team
+                controller.loadOrganization(organizationId);
               }
             },
             child: const Text('Create'),
@@ -363,16 +403,17 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
             ),
             onPressed: () async {
               try {
+                Get.back(); // Close dialog first
                 await controller.deleteOrganization(org.id);
-                Get.back(); // Close dialog
-                Get.back(); // Go back to organizations list
+                Get.offAllNamed('/organizations'); // Navigate using offAll
+
+                // Show snackbar after navigation
                 Get.snackbar(
                   'Success',
                   'Organization deleted successfully',
                   snackPosition: SnackPosition.BOTTOM,
                 );
               } catch (e) {
-                Get.back();
                 Get.snackbar(
                   'Error',
                   'Failed to delete organization: ${e.toString()}',
@@ -434,5 +475,18 @@ class OrganizationDetailView extends GetView<OrganizationDetailController> {
           ),
       ],
     );
+  }
+}
+
+class OrganizationDetailBinding implements Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut(() => OrganizationDetailController(Get.find()));
+    // Initialize TeamController with organization context
+    final orgId = int.tryParse(Get.parameters['id'] ?? '');
+    if (orgId != null) {
+      final teamController = Get.find<TeamController>();
+      teamController.setCurrentOrganization(orgId);
+    }
   }
 }

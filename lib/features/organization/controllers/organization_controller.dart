@@ -15,12 +15,6 @@ class OrganizationController extends GetxController {
   void onInit() {
     super.onInit();
     loadOrganizations();
-    // Listen to route changes
-    ever(Get.routing.current.obs, (route) {
-      if (route == '/organizations') {
-        loadOrganizations();
-      }
-    });
   }
 
   @override
@@ -57,14 +51,36 @@ class OrganizationController extends GetxController {
     try {
       isLoading.value = true;
       error.value = '';
-      final organization = await _repository.createOrganization(
+
+      // Check for duplicate name
+      final existingOrgs = await _repository.getOrganizations();
+      if (existingOrgs
+          .any((org) => org.name.toLowerCase() == name.toLowerCase())) {
+        throw Exception('An organization with this name already exists');
+      }
+
+      // Create the organization
+      await _repository.createOrganization(
           name, description ?? 'No description');
-      organizations.add(organization);
+
+      // Close dialog and refresh list
       Get.back();
-      Get.snackbar('Success', 'Organization created successfully');
+      await loadOrganizations();
+
+      Get.snackbar(
+        'Success',
+        'Organization created successfully',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       error.value = e.toString();
-      Get.snackbar('Error', 'Failed to create organization');
+      Get.snackbar(
+        'Error',
+        e.toString(),
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -75,25 +91,19 @@ class OrganizationController extends GetxController {
       isLoading.value = true;
       error.value = '';
 
-      // Delete from repository
       await _repository.deleteOrganization(id);
+      await loadOrganizations(); // Refresh immediately after deletion
 
-      // Remove from local list
-      organizations.removeWhere((org) => org.id == id);
-
-      // Force refresh the list to ensure UI is updated
-      organizations.refresh();
+      // Navigate back if we're in detail view
+      if (Get.currentRoute.contains('/organizations/')) {
+        Get.offAllNamed('/organizations'); // Use offAllNamed to clear the stack
+      }
 
       Get.snackbar(
         'Success',
         'Organization deleted successfully',
         snackPosition: SnackPosition.BOTTOM,
       );
-
-      // Navigate back only if we're in detail view
-      if (Get.currentRoute.contains('/organizations/')) {
-        Get.back();
-      }
     } catch (e) {
       error.value = e.toString();
       Get.snackbar(
